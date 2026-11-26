@@ -175,6 +175,13 @@ export default class AgeEncryptPlugin extends Plugin {
 					return;
 				}
 
+				// Capture the range now. By the time the password modal closes and
+				// encryption finishes, Obsidian may have refocused the editor and
+				// collapsed the live selection, so replaceSelection() could insert
+				// the block at the wrong place and leave the plaintext behind.
+				const from = editor.getCursor('from');
+				const to = editor.getCursor('to');
+
 				const modal = new PasswordModal(this.app, true);
 				const result = await modal.openAndGetPassword();
 
@@ -191,14 +198,20 @@ export default class AgeEncryptPlugin extends Plugin {
 						result.hint
 					);
 
-					const endOfSelection = editor.posToOffset(editor.getCursor('to'));
+					// Only replace if the text at the captured range is still what we encrypted
+					if (editor.getRange(from, to) !== selection) {
+						new Notice('The selected text changed while encrypting. Nothing was changed.');
+						return;
+					}
+
+					const endOfSelection = editor.posToOffset(to);
 					const endOfFile = editor.getValue().length;
 
 					if (endOfSelection === endOfFile) {
 						formattedBlock += '\n';
 					}
 
-					editor.replaceSelection(formattedBlock);
+					editor.replaceRange(formattedBlock, from, to);
 				} catch (error) {
 					new Notice('Failed to encrypt content');
 				}
