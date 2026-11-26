@@ -4,6 +4,20 @@
 - **Status:** Draft, not started
 - **Related:** [security-assessment.md](./security-assessment.md)
 
+## Handoff context (read first)
+
+- **Repo:** this directory, John's personal fork of an Obsidian plugin (upstream author Metin Ur). Plugin id `age-encrypt`, v1.2.0, TypeScript, built with esbuild (`npm run build` produces `main.js`, which is gitignored). Source is ~620 lines: `main.ts`, `src/services/encryption.ts`, `src/ui/PasswordModal.ts`, `src/ui/SettingsTab.ts`, `src/settings.ts`.
+- **Why this work exists:** John wants to point the plugin at a public key to encrypt and supply a private key to decrypt, rather than a shared passphrase. Read [security-assessment.md](./security-assessment.md) for the full code review, including the two bugs fixed in Phase 1. Line numbers in both files refer to commit `0735d66` and may drift.
+- **Constraints:**
+  - Do not commit, push, or open PRs unless John asks. Work on a feature branch if committing is requested.
+  - Keep passphrase mode working: blocks created by the current version must still decrypt unchanged (D1).
+  - Never persist a private key (`data.json`, vault files, logs, DOM after decrypt).
+  - Keep commits small and per-phase to ease merging upstream changes.
+  - No new runtime dependencies are expected; `age-encryption` 0.2.0 already has what is needed. Do not upgrade it without telling John.
+- **Testing in Obsidian:** build, then copy `main.js`, `manifest.json`, and `styles.css` into `<test vault>/.obsidian/plugins/age-encrypt/` and enable the plugin. Use a throwaway vault, not John's real one, with the File Recovery core plugin disabled. The repo has no test setup yet (Phase 0 adds one).
+- **Tooling needed:** Node/npm, and the `age` and `age-keygen` CLIs (`brew install age`) for the interop checks in Phase 3.
+- **Not yet verified:** the exclusivity of scrypt versus other recipients (see D1), and the header format used for mode detection (inspect a real ciphertext: decode the base64 and look at the first lines).
+
 ## Goal
 
 Encrypt to an age public key (`age1...`) and decrypt with the matching private key (`AGE-SECRET-KEY-1...`), instead of a shared passphrase. Output must stay interoperable with the `age` CLI in both directions.
@@ -25,7 +39,7 @@ The library also rejects scrypt work factors above 20 on decrypt (`dist/recipien
 
 | # | Decision | Recommendation | Status |
 |---|----------|----------------|--------|
-| D1 | Keep passphrase mode alongside public-key mode? | Yes, for backward compatibility with existing encrypted blocks. Modes are exclusive per block (the age spec does not allow an scrypt stanza alongside other recipients). | **Open, confirm with John** |
+| D1 | Keep passphrase mode alongside public-key mode? | Yes, for backward compatibility with existing encrypted blocks. Modes are exclusive per block (my understanding is that the age spec does not allow an scrypt stanza alongside other recipients; **verify against the spec or the library before relying on it**). | **Decided: keep passphrase mode (John, 2026-11-26)** |
 | D2 | Where does the private key come from? | Pasted into the decrypt modal, held in memory only. Optional desktop-only file path in a later phase. | Proposed |
 | D3 | Support multiple recipients? | Yes, a list in settings (e.g. self + backup key). Cheap with `addRecipient`. | Proposed |
 | D4 | Built-in key generation in settings? | Optional, last phase. Shows the secret once with a warning. `age-keygen` already does this. | Proposed |
