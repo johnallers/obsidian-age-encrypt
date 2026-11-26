@@ -58,7 +58,7 @@ Usable for selective note/block encryption. Do not rely on it as vault protectio
 
 ## Open items
 
-- [ ] Run `npm audit` and build locally
-- [ ] Read `age-encryption` 0.2.0 source: scrypt work factor, and decrypt-side limit on work factor
-- [ ] Fix the two bugs (or decide against using the plugin)
+- [x] Run `npm audit` and build locally (prod deps: 0 vulnerabilities; dev tooling has advisories)
+- [x] scrypt work factor: encrypt default 18; decrypt rejects above 20 (checked in 0.2.0 and 0.3.1)
+- [x] Fix the two bugs (commit b48b3b3 on `feature/upgrade-age-and-fixes`)
 - [ ] Decide on File Recovery / `.gitignore` settings for this vault

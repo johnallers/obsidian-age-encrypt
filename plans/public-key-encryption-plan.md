@@ -1,7 +1,7 @@
 # Plan: bug fixes and dependency upgrade (passphrase mode)
 
 - **Date:** 2026-11-26 (rewritten after re-assessment)
-- **Status:** Draft, not started
+- **Status:** Phases 0–2 done on `feature/upgrade-age-and-fixes`; manual test-vault checks outstanding
 - **Related:** [security-assessment.md](./security-assessment.md)
 - **Supersedes:** the earlier public-key (X25519) plan, now deferred (see the last section). The filename is kept so existing links still work.
 
@@ -45,20 +45,20 @@ Make the existing passphrase workflow safe and current: fix the two bugs found i
 ## Phases
 
 ### Phase 0: setup and upgrade
-- [ ] Build the fork locally (`npm ci && npm run build`) and run `npm audit`
-- [ ] Before upgrading, encrypt a few sample blocks with the current version (small, about 1 MB, multi-line, unicode) and keep them as regression fixtures
-- [ ] Bump `age-encryption` to `^0.3.1`, rebuild, confirm the fixtures still decrypt
-- [ ] Add a test runner (vitest) for the pure functions: block parse/format, armor round-trip
-- [ ] Test vault for manual checks, with File Recovery disabled
+- [x] Build the fork locally (`npm ci && npm run build`) and run `npm audit`
+- [x] Before upgrading, encrypt a few sample blocks with the current version (small, about 1 MB, multi-line, unicode) and keep them as regression fixtures
+- [x] Bump `age-encryption` to `^0.3.1`, rebuild, confirm the fixtures still decrypt
+- [x] Add a test runner (vitest) for the pure functions: block parse/format, armor round-trip
+- [ ] Test vault for manual checks, with File Recovery disabled (manual, not yet done)
 
 ### Phase 1: bug fixes
-- [ ] B1 content-matched replace with `ctx.sourcePath`
-- [ ] B2 switch to `armor.encode` / `armor.decode`, trim the trailing newline, keep a lenient decode fallback
-- [ ] Tests: 1 MB note round-trips; stale-range save aborts instead of overwriting; a block written by the old version decrypts; output decrypts with `age -d` (CLI interop)
+- [x] B1 content-matched replace with `ctx.sourcePath`
+- [x] B2 switch to `armor.encode` / `armor.decode`, trim the trailing newline, keep a lenient decode fallback
+- [x] Tests: 1 MB note round-trips; stale-range save aborts instead of overwriting; a block written by the old version decrypts; output decrypts with `age -d` (CLI interop)
 
 ### Phase 2: docs
-- [ ] README guidance: use a long random passphrase from a password manager (20+ random characters, or 5+ random words); a lost passphrase means lost data
-- [ ] README security notes from the assessment: plaintext remnants from before encryption (File Recovery, git history, sync versions), session password caching behavior
+- [x] README guidance: use a long random passphrase from a password manager (20+ random characters, or 5+ random words); a lost passphrase means lost data
+- [x] README security notes from the assessment: plaintext remnants from before encryption (File Recovery, git history, sync versions), session password caching behavior
 - [ ] Optional: warn in "Encrypt file" that earlier plaintext may remain in File Recovery, git, and sync history
 
 ## Risks
@@ -71,9 +71,9 @@ Make the existing passphrase workflow safe and current: fix the two bugs found i
 
 ## Verification checklist
 
-- [ ] `npm run build` clean, tests pass
-- [ ] Existing passphrase notes from the current version still decrypt
-- [ ] `age -d` decrypts plugin output, and plugin decrypts `age -p -a` output
+- [x] `npm run build` clean, tests pass
+- [x] Existing passphrase notes from the current version still decrypt
+- [x] `age -d` decrypts plugin output, and plugin decrypts `age -p -a` output
 - [ ] Manual run in a throwaway vault on desktop (and mobile if used)
 
 ## Deferred: public-key mode
