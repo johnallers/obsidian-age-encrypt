@@ -11,6 +11,7 @@ import {
 type HTMLElementType = HTMLElement;
 
 import { EncryptionService } from './src/services/encryption';
+import { replaceAgeBlock } from './src/services/blockReplace';
 import { AgeEncryptSettings, DEFAULT_SETTINGS } from './src/settings';
 import { AgeEncryptSettingTab } from './src/ui/SettingsTab';
 import { PasswordModal } from './src/ui/PasswordModal';
@@ -119,10 +120,8 @@ export default class AgeEncryptPlugin extends Plugin {
 							cls: 'age-encrypt-button age-encrypt-button-secondary'
 						});
 
-						// Get file and position information
-						const file = this.app.workspace.getActiveFile();
-						const startLine = ctx.getSectionInfo(el)?.lineStart || 0;
-						const endLine = ctx.getSectionInfo(el)?.lineEnd || 0;
+						// The file that owns this block (not whichever file is active)
+						const sourcePath = ctx.sourcePath;
 
 						saveEncryptedButton.onclick = async () => {
 							try {
@@ -137,8 +136,9 @@ export default class AgeEncryptPlugin extends Plugin {
 									hint
 								);
 
-								await this.updateFileContent(file, startLine, endLine, formattedBlock);
-								new Notice('Content re-encrypted successfully');
+								if (await this.updateFileContent(sourcePath, source, formattedBlock)) {
+									new Notice('Content re-encrypted successfully');
+								}
 							} catch (error) {
 								new Notice('Failed to re-encrypt content');
 							}
@@ -147,8 +147,9 @@ export default class AgeEncryptPlugin extends Plugin {
 						savePlainTextButton.onclick = async () => {
 							try {
 								const editedContent = textarea.value;
-								await this.updateFileContent(file, startLine, endLine, editedContent);
-								new Notice('Saved as plain text');
+								if (await this.updateFileContent(sourcePath, source, editedContent)) {
+									new Notice('Saved as plain text');
+								}
 							} catch (error) {
 								new Notice('Failed to save as plain text');
 							}
@@ -273,19 +274,36 @@ export default class AgeEncryptPlugin extends Plugin {
 		this.encryptionService.clearStoredPasswords();
 	}
 
-	// Helper method to update file content
+	/**
+	 * Replace the age block whose source text is `originalSource` in the file at
+	 * `sourcePath`. Matches by content inside vault.process (atomic read-modify-
+	 * write), and aborts without touching the file unless the block is found
+	 * exactly once. Returns true only if the file was changed.
+	 */
 	private async updateFileContent(
-		file: TFile | null,
-		startLine: number,
-		endLine: number,
+		sourcePath: string,
+		originalSource: string,
 		newContent: string
-	): Promise<void> {
-		if (!file) return;
+	): Promise<boolean> {
+		const file = this.app.vault.getAbstractFileByPath(sourcePath);
+		if (!(file instanceof TFile)) {
+			new Notice('Could not find the note containing this block. Nothing was changed.');
+			return false;
+		}
 
-		const fileContent = await this.app.vault.process(file, (data) => {
-			const lines = data.split('\n');
-			lines.splice(startLine, endLine - startLine + 1, newContent);
-			return lines.join('\n');
+		let replaced = false;
+		await this.app.vault.process(file, (data) => {
+			const updated = replaceAgeBlock(data, originalSource, newContent);
+			if (updated === null) return data;
+			replaced = true;
+			return updated;
 		});
+
+		if (!replaced) {
+			new Notice(
+				'The encrypted block was not found exactly once in the note (it may have changed). Nothing was changed; reopen the note and try again.'
+			);
+		}
+		return replaced;
 	}
 }
