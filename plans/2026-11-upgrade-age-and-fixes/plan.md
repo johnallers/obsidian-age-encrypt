@@ -1,9 +1,9 @@
 # Plan: bug fixes and dependency upgrade (passphrase mode)
 
 - **Date:** 2026-11-26 (rewritten after re-assessment)
-- **Status:** Phases 0–2 done and live-tested; PR not yet opened
+- **Status:** Done and merged
 - **Branch:** `feature/upgrade-age-and-fixes`
-- **PR:** _not opened yet; add the link here_
+- **PR:** [#1](https://github.com/johnallers/obsidian-age-encrypt/pull/1) (merged into the fork's `main` on 2026-11-27)
 - **Related:** [outcome.md](./outcome.md) (what shipped and why it differs), [security-assessment.md](./security-assessment.md), [deferred-public-key.md](./deferred-public-key.md)
 - **Supersedes:** the earlier public-key (X25519) plan, now deferred.
 
@@ -53,7 +53,7 @@ Make the existing passphrase workflow safe and current: fix the bugs found in th
 - [x] Before upgrading, encrypt a few sample blocks with the current version (small, about 1 MB, multi-line, unicode) and keep them as regression fixtures
 - [x] Bump `age-encryption` to `^0.3.1`, rebuild, confirm the fixtures still decrypt
 - [x] Add a test runner (vitest) for the pure functions: block parse/format, armor round-trip
-- [x] Test vault for manual checks, with File Recovery disabled (live testing via the Obsidian CLI)
+- [x] Throwaway test vault for manual checks (live testing via the Obsidian CLI). Correction: File Recovery was meant to be disabled there but turned out to be enabled; it does not affect these plugin-behavior checks.
 
 ### Phase 1: bug fixes
 - [x] B1 content-matched replace with `ctx.sourcePath`
@@ -65,7 +65,7 @@ Make the existing passphrase workflow safe and current: fix the bugs found in th
 ### Phase 2: docs
 - [x] README guidance: use a long random passphrase from a password manager (20+ random characters, or 5+ random words); a lost passphrase means lost data
 - [x] README security notes from the assessment: plaintext remnants from before encryption (File Recovery, git history, sync versions), session password caching behavior
-- [ ] Optional: warn in "Encrypt file" that earlier plaintext may remain in File Recovery, git, and sync history
+- [x] Warn before encrypting that earlier plaintext may remain in File Recovery, git, and sync history. Done as a follow-up: see [../2026-11-recovery-warning/plan.md](../2026-11-recovery-warning/plan.md).
 
 ## Risks
 

@@ -24,5 +24,14 @@ export class AgeEncryptSettingTab extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 }));
 
+        new Setting(containerEl)
+            .setName('Warn about leftover plaintext before encrypting')
+            .setDesc('Show a reminder that File Recovery, Git or backup plugins, sync history, and system backups may keep earlier plaintext copies.')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.warnAboutRemnants)
+                .onChange(async (value) => {
+                    this.plugin.settings.warnAboutRemnants = value;
+                    await this.plugin.saveSettings();
+                }));
     }
 }

@@ -2,7 +2,7 @@
 
 - **Part of:** [plan.md](./plan.md) (2026-11 upgrade and fixes)
 - **Branch:** `feature/upgrade-age-and-fixes`
-- **PR:** _not opened yet; add the link here_
+- **PR:** [#1](https://github.com/johnallers/obsidian-age-encrypt/pull/1) (merged into the fork's `main` on 2026-11-27)
 - **Written:** 2026-11-27
 
 This file records where the work departed from the plan and why. Read it with `git log` to trace a change back to its reason.
@@ -29,7 +29,7 @@ This file records where the work departed from the plan and why. Read it with `g
 
 - **Unit tests:** 23 passing (legacy-block fixtures, armor round-trip including 1 MB, block replacement including stale and duplicate cases).
 - **CLI interop:** plugin output decrypts with `age -d`; `age -p -a` output decrypts in the plugin; a 1 MB block decrypts identically with the CLI.
-- **Live testing** via the Obsidian CLI in a throwaway vault, with File Recovery disabled:
+- **Live testing** via the Obsidian CLI in a throwaway vault (correction: File Recovery was meant to be disabled there but was in fact enabled; it does not affect these plugin-behavior checks):
   - Decrypt a legacy block: pass.
   - Save after inserting lines above the block (old code would clobber lines): pass.
   - Save after the block text changed underneath: aborts with a notice, file hash unchanged.
@@ -42,6 +42,6 @@ This file records where the work departed from the plan and why. Read it with `g
 
 - Obsidian's reading view rendered nothing for a single 1.4 MB encrypted block (no errors). Decrypt was verified through the plugin service instead of the button.
 - Decrypting that 1 MB block took about 11 s in the app, versus under 1 s in Node.
-- Optional UI warning in "Encrypt file" about plaintext remaining in File Recovery, git and sync history (documented in the README only).
-- The plugin version is still 1.2.0 (no version bump yet).
+- ~~Optional UI warning about plaintext remaining in File Recovery, git and sync history~~ Done as a follow-up: see [../2026-11-recovery-warning/plan.md](../2026-11-recovery-warning/plan.md).
+- ~~The plugin version is still 1.2.0~~ Bumped to 1.3.0 in the follow-up branch.
 - Live tests need the Obsidian window focused. While it was unfocused, modals did not render at all, even a plain one.

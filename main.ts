@@ -15,6 +15,7 @@ import { replaceAgeBlock } from './src/services/blockReplace';
 import { AgeEncryptSettings, DEFAULT_SETTINGS } from './src/settings';
 import { AgeEncryptSettingTab } from './src/ui/SettingsTab';
 import { PasswordModal } from './src/ui/PasswordModal';
+import { RemnantWarningModal } from './src/ui/RemnantWarningModal';
 
 export default class AgeEncryptPlugin extends Plugin {
 	settings: AgeEncryptSettings;
@@ -182,6 +183,8 @@ export default class AgeEncryptPlugin extends Plugin {
 				const from = editor.getCursor('from');
 				const to = editor.getCursor('to');
 
+				if (!(await this.confirmRemnantWarning())) return;
+
 				const modal = new PasswordModal(this.app, true);
 				const result = await modal.openAndGetPassword();
 
@@ -228,6 +231,8 @@ export default class AgeEncryptPlugin extends Plugin {
 					new Notice('No active file');
 					return;
 				}
+
+				if (!(await this.confirmRemnantWarning())) return;
 
 				const fileContent = await this.app.vault.read(activeFile);
 				const modal = new PasswordModal(this.app, true);
@@ -287,6 +292,21 @@ export default class AgeEncryptPlugin extends Plugin {
 				}
 			}
 		});
+	}
+
+	/**
+	 * Shows the leftover-plaintext warning unless the user turned it off.
+	 * Returns false if the user cancelled.
+	 */
+	private async confirmRemnantWarning(): Promise<boolean> {
+		if (!this.settings.warnAboutRemnants) return true;
+
+		const result = await new RemnantWarningModal(this.app).openAndConfirm();
+		if (result.dontWarnAgain) {
+			this.settings.warnAboutRemnants = false;
+			await this.saveSettings();
+		}
+		return result.proceed;
 	}
 
 	async loadSettings(): Promise<void> {
