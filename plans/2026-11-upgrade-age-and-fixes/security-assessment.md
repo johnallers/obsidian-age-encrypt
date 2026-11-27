@@ -1,5 +1,6 @@
 # Security assessment: obsidian-age-encrypt
 
+- **Part of:** [plan.md](./plan.md); results in [outcome.md](./outcome.md)
 - **Date:** 2026-11-26
 - **Repo reviewed:** `/Users/johnallers/dev/obsidian-age-encrypt` (HEAD `0735d66`, plugin version 1.2.0, author Metin Ur)
 - **Scope:** manual read of all plugin source (~620 lines: `main.ts`, `src/services/encryption.ts`, `src/ui/*`, `src/settings.ts`), `package.json`, lockfile entry for `age-encryption`, and README.

@@ -1,14 +1,16 @@
 # Plan: bug fixes and dependency upgrade (passphrase mode)
 
 - **Date:** 2026-11-26 (rewritten after re-assessment)
-- **Status:** Phases 0–2 done on `feature/upgrade-age-and-fixes`; manual test-vault checks outstanding
-- **Related:** [security-assessment.md](./security-assessment.md)
-- **Supersedes:** the earlier public-key (X25519) plan, now deferred (see the last section). The filename is kept so existing links still work.
+- **Status:** Phases 0–2 done and live-tested; PR not yet opened
+- **Branch:** `feature/upgrade-age-and-fixes`
+- **PR:** _not opened yet; add the link here_
+- **Related:** [outcome.md](./outcome.md) (what shipped and why it differs), [security-assessment.md](./security-assessment.md), [deferred-public-key.md](./deferred-public-key.md)
+- **Supersedes:** the earlier public-key (X25519) plan, now deferred.
 
 ## Handoff context (read first)
 
 - **Repo:** this directory, John's personal fork of an Obsidian plugin (upstream author Metin Ur). Plugin id `age-encrypt`, v1.2.0, TypeScript, built with esbuild (`npm run build` produces `main.js`, which is gitignored). Source is ~620 lines: `main.ts`, `src/services/encryption.ts`, `src/ui/PasswordModal.ts`, `src/ui/SettingsTab.ts`, `src/settings.ts`.
-- **Why the scope changed:** John decided to stay with passphrase mode and store a long random passphrase in a password manager. For a single user this is equivalent in security to holding a private key in the same manager, and it avoids settings, key handling, and mode detection. Public-key mode and post-quantum recipients were evaluated and deferred.
+- **Why the scope changed:** John decided to stay with passphrase mode and store a long random passphrase in a password manager. For a single user this is equivalent in security to holding a private key in the same manager, and it avoids settings, key handling, and mode detection. Public-key mode and post-quantum recipients were evaluated and deferred (see [deferred-public-key.md](./deferred-public-key.md)).
 - **Constraints:**
   - Do not commit, push, or open PRs unless John asks. Work on a feature branch if committing is requested.
   - Blocks created by the current version must still decrypt unchanged.
@@ -19,7 +21,7 @@
 
 ## Goal
 
-Make the existing passphrase workflow safe and current: fix the two bugs found in the code review (one can overwrite the wrong lines of a note), move to the latest `age-encryption`, and document the real security caveats.
+Make the existing passphrase workflow safe and current: fix the bugs found in the code review (one can overwrite the wrong lines of a note), move to the latest `age-encryption`, and document the real security caveats. Two more stale-state bugs (B3, B4) were found during live testing; see [outcome.md](./outcome.md).
 
 ## Dependency upgrade findings
 
@@ -32,7 +34,7 @@ Make the existing passphrase workflow safe and current: fix the two bugs found i
   - `armor.encode` ends with a trailing newline. Commit `bed2cdb` removed trailing newlines on purpose for age CLI compatibility, so trim it.
   - `armor.decode` is strict (every line exactly 64 characters except the last). The current `atob` path is lenient. Keep a lenient fallback so hand-edited or reflowed blocks still open.
 - **Scrypt:** decrypt rejects work factors above 20 (a hostile block cannot hang the app), which closes that open item from the assessment. `setScryptWorkFactor` exists if the default (18) ever needs changing.
-- **Other 0.2.1 to 0.3.1 additions (passkeys, post-quantum hybrid recipients, tag recipients):** not used in passphrase mode. See the deferred section.
+- **Other 0.2.1 to 0.3.1 additions (passkeys, post-quantum hybrid recipients, tag recipients):** not used in passphrase mode. See [deferred-public-key.md](./deferred-public-key.md).
 
 ## Bug fixes
 
@@ -41,6 +43,8 @@ Make the existing passphrase workflow safe and current: fix the two bugs found i
   - Inside `vault.process`, replace the exact original block text, and abort with a Notice if it isn't found exactly once.
   - Remove the `|| 0` fallbacks.
 - **B2 Base64 stack overflow** (`encryption.ts:18`, `String.fromCharCode(...buffer)` overflows the stack on large notes). Fixed by switching to `armor.encode` and `armor.decode`. If armor adoption is dropped, use a chunked conversion instead.
+- **B3 Encrypt selection inserts at the wrong place** _(found by live testing, not in the original plan)_. With `age-encryption` 0.3.1 the selection collapses while the password modal closes, so the block lands at the top of the note and the plaintext stays. Fix: capture the range before the modal, replace that range, abort if its text changed.
+- **B4 Encrypt file overwrites edits made during the password prompt** _(found by review during live testing)_. Fix: write with `vault.process` only if the note still matches the snapshot that was encrypted.
 
 ## Phases
 
@@ -49,12 +53,14 @@ Make the existing passphrase workflow safe and current: fix the two bugs found i
 - [x] Before upgrading, encrypt a few sample blocks with the current version (small, about 1 MB, multi-line, unicode) and keep them as regression fixtures
 - [x] Bump `age-encryption` to `^0.3.1`, rebuild, confirm the fixtures still decrypt
 - [x] Add a test runner (vitest) for the pure functions: block parse/format, armor round-trip
-- [ ] Test vault for manual checks, with File Recovery disabled (manual, not yet done)
+- [x] Test vault for manual checks, with File Recovery disabled (live testing via the Obsidian CLI)
 
 ### Phase 1: bug fixes
 - [x] B1 content-matched replace with `ctx.sourcePath`
 - [x] B2 switch to `armor.encode` / `armor.decode`, trim the trailing newline, keep a lenient decode fallback
 - [x] Tests: 1 MB note round-trips; stale-range save aborts instead of overwriting; a block written by the old version decrypts; output decrypts with `age -d` (CLI interop)
+- [x] B3 Encrypt selection replaces the captured range (commit `a6700e3`)
+- [x] B4 Encrypt file aborts if the note changed during the prompt (commit `2d8b43c`)
 
 ### Phase 2: docs
 - [x] README guidance: use a long random passphrase from a password manager (20+ random characters, or 5+ random words); a lost passphrase means lost data
@@ -74,14 +80,8 @@ Make the existing passphrase workflow safe and current: fix the two bugs found i
 - [x] `npm run build` clean, tests pass
 - [x] Existing passphrase notes from the current version still decrypt
 - [x] `age -d` decrypts plugin output, and plugin decrypts `age -p -a` output
-- [ ] Manual run in a throwaway vault on desktop (and mobile if used)
+- [x] Live run in a throwaway vault on desktop (mobile not tested)
 
 ## Deferred: public-key mode
 
-Evaluated and set aside because a single user storing everything in one password manager gains little. Revisit if one of these becomes true: a device should encrypt without being able to decrypt, notes are shared with another person, or a backup key is wanted.
-
-- **Design sketch:** settings `encryptionMode` and `recipients` (validated on save); encrypt via `Encrypter.addRecipient`, decrypt via `Decrypter.addIdentity` with the private key pasted into the modal and held in memory only; detect block type from the decoded header (`age-encryption.org/v1` then `-> scrypt` or `-> X25519`). Never write a private key to `data.json`.
-- **Verified:** modes are exclusive per block. `setPassphrase` cannot be combined with `addRecipient`, and the scrypt identity throws "scrypt recipient is not the only one in the header".
-- **Post-quantum hybrid recipients (`age1pq1...`):** supported by the library for free via `addRecipient` / `addIdentity`, but recipient strings are about 1.9 KB, headers grow, the age CLI needs 1.3.0 or later, and the benefit only matters for multi-decade confidentiality against a ciphertext-harvesting attacker. Not promoted. Passphrase mode is unaffected by the quantum concern.
-- **Tag recipients (`age1tag1...`):** encrypt-only from the plugin; decrypting needs the CLI and a hardware plugin.
-- **Passkeys and `CryptoKey` identities:** unproven in Obsidian's Electron and mobile webviews, out of scope.
+Evaluated and set aside. The design sketch, verified facts and reasons are in [deferred-public-key.md](./deferred-public-key.md).
