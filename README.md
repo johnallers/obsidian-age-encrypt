@@ -41,6 +41,8 @@ Encrypting a note replaces it on disk, but earlier plaintext can survive in othe
 - **Backups** such as Time Machine, and editor undo history in an open note
 - Anything you copied elsewhere, such as the clipboard or other apps
 
+The plugin shows a reminder about this before encrypting. Choose "Don't warn me again" in the dialog, or use the plugin settings, to turn it off or back on.
+
 ### What is not encrypted
 - File names, links, tags, and the hint text are stored in plain text
 - With "Exclude frontmatter from encryption" on (the default), the YAML frontmatter stays in plain text too
