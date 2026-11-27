@@ -1,9 +1,9 @@
 # Plan: warn about leftover plaintext before encrypting
 
 - **Date:** 2026-11-27
-- **Status:** Implemented on `feature/recovery-warning`; PR pending
+- **Status:** Implemented on `feature/recovery-warning`; PR open
 - **Branch:** `feature/recovery-warning`
-- **PR:** _not opened yet; add the link here_
+- **PR:** [#2](https://github.com/johnallers/obsidian-age-encrypt/pull/2)
 - **Follows:** [../2026-11-upgrade-age-and-fixes/](../2026-11-upgrade-age-and-fixes/) (PR #1), which left this as an optional item and documented the risk in the README only.
 
 ## Goal
