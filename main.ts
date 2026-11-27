@@ -266,8 +266,22 @@ export default class AgeEncryptPlugin extends Plugin {
 						finalContent += '\n';
 					}
 
-					await this.app.vault.modify(activeFile, finalContent);
-					new Notice('File encrypted successfully');
+					// Write atomically, and only if the note is still what we encrypted.
+					// The snapshot was read before the password prompt, so edits made
+					// in the meantime (other pane, sync, recent typing) would otherwise
+					// be silently overwritten.
+					let written = false;
+					await this.app.vault.process(activeFile, (data) => {
+						if (data !== fileContent) return data;
+						written = true;
+						return finalContent;
+					});
+
+					if (written) {
+						new Notice('File encrypted successfully');
+					} else {
+						new Notice('The note changed while encrypting. Nothing was changed; try again.');
+					}
 				} catch (error) {
 					new Notice('Failed to encrypt file');
 				}
