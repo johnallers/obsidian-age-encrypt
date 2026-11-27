@@ -1,4 +1,4 @@
-import { Encrypter, Decrypter } from "age-encryption";
+import { Encrypter, Decrypter, armor } from "age-encryption";
 
 export interface EncryptionOptions {
     password: string;
@@ -14,20 +14,30 @@ export interface EncryptedBlock {
 export class EncryptionService {
     private sessionPasswords: Map<string, string> = new Map();
 
-    private arrayBufferToBase64(buffer: Uint8Array): string {
-        const base64 = btoa(String.fromCharCode(...buffer));
-        // Remove any trailing newlines after line wrapping
-        return base64.replace(/(.{64})/g, '$1\n').trim();
+    private static readonly ARMOR_BEGIN = '-----BEGIN AGE ENCRYPTED FILE-----';
+    private static readonly ARMOR_END = '-----END AGE ENCRYPTED FILE-----';
+
+    /**
+     * Returns the base64 body of the age armor (64-column lines, no markers,
+     * no trailing newline). Uses the library encoder, which has no argument
+     * spreading and so is safe for large inputs.
+     */
+    private encodeBody(binary: Uint8Array): string {
+        const lines = armor.encode(binary).trim().split('\n');
+        return lines.slice(1, -1).join('\n');
     }
 
-    private base64ToArrayBuffer(base64: string): Uint8Array {
-        const cleanBase64 = base64.replace(/\n/g, '');
-        const binary = atob(cleanBase64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) {
-            bytes[i] = binary.charCodeAt(i);
-        }
-        return bytes;
+    /**
+     * Decodes a base64 body. Whitespace is stripped and the body is re-wrapped
+     * to 64 columns first, so blocks that were hand-edited or reflowed by an
+     * editor still decode even though armor.decode itself is strict.
+     */
+    private decodeBody(body: string): Uint8Array {
+        const flat = body.replace(/\s+/g, '');
+        const lines = flat.match(/.{1,64}/g) ?? [];
+        return armor.decode(
+            [EncryptionService.ARMOR_BEGIN, ...lines, EncryptionService.ARMOR_END].join('\n')
+        );
     }
 
     async encrypt(content: string, options: EncryptionOptions): Promise<string> {
@@ -35,7 +45,7 @@ export class EncryptionService {
             const encrypter = new Encrypter();
             encrypter.setPassphrase(options.password);
             const encryptedArray = await encrypter.encrypt(content);
-            const encryptedBase64 = this.arrayBufferToBase64(encryptedArray);
+            const encryptedBase64 = this.encodeBody(encryptedArray);
 
             if (options.remember) {
                 this.sessionPasswords.set(encryptedBase64, options.password);
@@ -51,7 +61,7 @@ export class EncryptionService {
         try {
             const decrypter = new Decrypter();
             decrypter.addPassphrase(password);
-            const encryptedArray = this.base64ToArrayBuffer(encryptedContent);
+            const encryptedArray = this.decodeBody(encryptedContent);
             const result = await decrypter.decrypt(encryptedArray, "text");
             return result;
         } catch (error: unknown) {
